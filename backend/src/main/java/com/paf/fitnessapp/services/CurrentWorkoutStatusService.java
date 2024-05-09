@@ -28,7 +28,17 @@ public class CurrentWorkoutStatusService {
     }
 
     public CurrentWorkoutStatusModel updateCurrentWorkoutStatus(String id, CurrentWorkoutStatusModel updatedWorkoutStatus) {
-        return currentWorkoutStatusRepository.save(updatedWorkoutStatus);
+        Optional<CurrentWorkoutStatusModel> existingStatus = currentWorkoutStatusRepository.findById(id);
+        if (existingStatus.isPresent()) {
+            CurrentWorkoutStatusModel existingModel = existingStatus.get();
+            existingModel.setDescription(updatedWorkoutStatus.getDescription());
+            existingModel.setDistanceRun(updatedWorkoutStatus.getDistanceRun());
+            existingModel.setPushupsCompleted(updatedWorkoutStatus.getPushupsCompleted());
+            existingModel.setWeightLifted(updatedWorkoutStatus.getWeightLifted());
+            return currentWorkoutStatusRepository.save(existingModel);
+        } else {
+            return null; // or handle this case as needed, e.g., throw an exception
+        }
     }
 
     public void deleteCurrentWorkoutStatusById(String id) {

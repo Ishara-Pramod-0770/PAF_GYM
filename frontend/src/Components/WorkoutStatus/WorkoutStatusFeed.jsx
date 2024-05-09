@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Card, CardContent, Typography, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { CircularProgress, IconButton, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Card, CardContent } from '@mui/material';
 import { Delete, Edit, ArrowBack } from '@mui/icons-material';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 const WorkoutStatusFeed = () => {
     const [workoutStatusPosts, setWorkoutStatusPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editConfirmationOpen, setEditConfirmationOpen] = useState(false);
     const [postIdToEdit, setPostIdToEdit] = useState(null);
     const [editedPost, setEditedPost] = useState({
         description: '',
@@ -58,11 +60,19 @@ const WorkoutStatusFeed = () => {
 
     const handleSaveEdit = async () => {
         try {
-            await axios.put(`http://localhost:8443/api/current-workout-status/${postIdToEdit}`, editedPost);
+            const response = await axios.put(`http://localhost:8443/api/current-workout-status/${postIdToEdit}`, editedPost);
+            const updatedPost = response.data; // Assuming the API returns the updated post
+            
+            // Update the edited post in the state
+            setWorkoutStatusPosts(prevPosts =>
+                prevPosts.map(post => (post.id === postIdToEdit ? updatedPost : post))
+            );
+            
             // Close edit dialog
             setEditDialogOpen(false);
-            // Update the edited post in the state
-            setWorkoutStatusPosts(prevPosts => prevPosts.map(post => post.id === postIdToEdit ? { ...post, ...editedPost } : post));
+            
+            // Open edit confirmation dialog
+            setEditConfirmationOpen(true);
         } catch (error) {
             console.error('Error updating post:', error);
         }
@@ -74,6 +84,10 @@ const WorkoutStatusFeed = () => {
             ...prevState,
             [name]: value
         }));
+    };
+
+    const handleEditConfirmationClose = () => {
+        setEditConfirmationOpen(false);
     };
 
     return (
@@ -91,25 +105,24 @@ const WorkoutStatusFeed = () => {
             ) : (
                 workoutStatusPosts.map(post => (
                     <Card key={post.id} style={{ marginBottom: '20px' }}>
-                        <CardContent style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <Typography variant="h6" component="h2">
-                                    User ID: {post.userId}
-                                </Typography>
-                                <Typography variant="body1" color="textSecondary" gutterBottom>
-                                    {post.description}
-                                </Typography>
-                                <Typography variant="body1" color="textSecondary">
-                                    Distance Run: {post.distanceRun} km
-                                </Typography>
-                                <Typography variant="body1" color="textSecondary">
-                                    Pushups Completed: {post.pushupsCompleted}
-                                </Typography>
-                                <Typography variant="body1" color="textSecondary">
-                                    Weight Lifted: {post.weightLifted} lbs
-                                </Typography>
+                        <CardContent style={{ position: 'relative' }}>
+                            <div style={{ width: '100%', height: '200px' }}>
+                                <ResponsiveContainer>
+                                    <BarChart
+                                        data={[post]}
+                                        margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+                                    >
+                                        <XAxis dataKey="userId" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="distanceRun" fill="#8884d8" />
+                                        <Bar dataKey="pushupsCompleted" fill="#82ca9d" />
+                                        <Bar dataKey="weightLifted" fill="#ffc658" />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
-                            <div>
+                            <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
                                 <IconButton aria-label="edit" onClick={() => handleEdit(post)}>
                                     <Edit />
                                 </IconButton>
@@ -164,6 +177,16 @@ const WorkoutStatusFeed = () => {
                 <DialogActions>
                     <Button onClick={handleCloseEditDialog}>Cancel</Button>
                     <Button onClick={handleSaveEdit} color="primary">Save</Button>
+                </DialogActions>
+            </Dialog>
+            {/* Edit Confirmation Dialog */}
+            <Dialog open={editConfirmationOpen} onClose={handleEditConfirmationClose}>
+                <DialogTitle>Edit Confirmation</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body1">Post edited successfully!</Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleEditConfirmationClose} color="primary">OK</Button>
                 </DialogActions>
             </Dialog>
         </div>
